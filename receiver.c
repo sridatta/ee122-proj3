@@ -60,20 +60,32 @@ int main(int argc, char *argv[]){
     return 2;
   }
 
+  struct timeval timeout;
+
+  timeout.tv_sec = 1;
+  timeout.tv_usec = 0;
+  setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&timeout, sizeof(struct timeval));
 
   struct sockaddr src_addr;
   int src_len = sizeof src_addr;
   ee122_packet pkt;
 
   int num_rcv = 0;
+  int bytes_read;
   unsigned long num_expected;
 
-  while(recvfrom(sockfd, &pkt, sizeof(ee122_packet), 0, &src_addr, &src_len)){
-    num_rcv++;
-    num_expected = pkt.num_expected;
-    printf("Received: %d, Expected: %lu \n", num_rcv, num_expected);
+  while(bytes_read = recvfrom(sockfd, &pkt, sizeof(ee122_packet), 0, &src_addr, &src_len)){
+    if(bytes_read == -1){
+      if(num_rcv > 0){
+        break;
+      }
+    } else {
+      num_rcv++;
+      num_expected = pkt.num_expected;
+    }
   }
 
+  printf("Received,Expected,Success\n%d,%lu,%lf \n", num_rcv, num_expected, 100*(((float)num_rcv)/num_expected));
 
   freeaddrinfo(res);
   close(sockfd);
