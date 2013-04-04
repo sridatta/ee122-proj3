@@ -24,6 +24,8 @@ int main(int argc, char *argv[]){
     exit(0);
   }
 
+  srand(time(0)); // init random
+
   int status;
   int sockfd;
 
@@ -73,6 +75,7 @@ int main(int argc, char *argv[]){
   int num_rcv = 0;
   int bytes_read;
   unsigned long num_expected;
+  float avg_len;
 
   while(bytes_read = recvfrom(sockfd, &pkt, sizeof(ee122_packet), 0, &src_addr, &src_len)){
     if(bytes_read == -1){
@@ -82,10 +85,11 @@ int main(int argc, char *argv[]){
     } else {
       num_rcv++;
       num_expected = pkt.num_expected;
+      avg_len = pkt.avg_len;
     }
   }
 
-  printf("Received,Expected,Success\n%d,%lu,%lf \n", num_rcv, num_expected, 100*(((float)num_rcv)/num_expected));
+  printf("%d,%lu,%lf,%lf\n", num_rcv, num_expected, 100*(((float)num_rcv)/num_expected), avg_len);
 
   freeaddrinfo(res);
   close(sockfd);
