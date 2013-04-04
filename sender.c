@@ -64,6 +64,7 @@ int main(int argc, char *argv[]){
   pkt.R = R;
   pkt.stream = *stream_id;
   pkt.num_expected = NUM_PACKETS;
+  pkt.avg_len = 0;
 
   struct timespec sleep_spec;
   sleep_spec.tv_sec = 0;
