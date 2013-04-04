@@ -2,16 +2,16 @@
 #define __AW_PACKET_H__
 
 #include <time.h>
-
+#include <stdint.h>
 
 typedef struct {
-    unsigned long seq_number; /* 4 bytes */
+    uint32_t seq_number; /* 4 bytes */
     struct timeval timestamp; /* 8 bytes */
-    unsigned long R; /* 4 bytes */
+    uint32_t R; /* 4 bytes */
     char stream; /* 1 bytes */
-    unsigned long num_expected; /* 4 bytes */
-    float avg_len; /* 8 bytes */
-    char garbage[128-(4+8+4+1+4+8)];
+    uint32_t num_expected; /* 4 bytes */
+    float avg_len; /* 4 bytes */
+    char garbage[128-(4+sizeof(timeval)+4+1+4+4)];
 } ee122_packet;
 
 #endif
