@@ -10,7 +10,8 @@ typedef struct {
     unsigned long R; /* 4 bytes */
     char stream; /* 1 bytes */
     unsigned long num_expected; /* 4 bytes */
-    char garbage[128-(4+8+4+1+4)];
+    float avg_len; /* 8 bytes */
+    char garbage[128-(4+8+4+1+4+8)];
 } ee122_packet;
 
 #endif
