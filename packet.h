@@ -9,7 +9,8 @@ typedef struct {
     struct timeval timestamp; /* 8 bytes */
     unsigned long R; /* 4 bytes */
     char stream; /* 1 bytes */
-    char garbage[128-(4+8+4+1)];
-} packet;
+    unsigned long num_expected; /* 4 bytes */
+    char garbage[128-(4+8+4+1+4)];
+} ee122_packet;
 
 #endif
