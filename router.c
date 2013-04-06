@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
 	unsigned capacity_1 = (unsigned)(B * (((double)(duty_cycle)) / 100.0));
 	unsigned capacity_2 = B - capacity_1;
 	bytequeue queue_1, queue_2;
-	unsigned long sum_1, sum_2;
+	unsigned long sum_1 = 0, sum_2 = 0;
 	if (bytequeue_init(&queue_1, sizeof(ee122_packet), capacity_1) < 0) {
 		perror("Memory error allocating queue 1");
 	}
