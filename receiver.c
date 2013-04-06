@@ -73,8 +73,8 @@ int main(int argc, char *argv[]){
   ee122_packet pkt;
 
   int num_rcv = 0;
-  int bytes_read;
-  unsigned long num_expected;
+  int bytes_read = 0;
+  unsigned long num_expected = -1;
   float avg_len;
 
   while(bytes_read = recvfrom(sockfd, &pkt, sizeof(ee122_packet), 0, &src_addr, &src_len)){
