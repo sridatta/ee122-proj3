@@ -11,7 +11,7 @@ typedef struct {
 } bytequeue;
 
 int bytequeue_init(bytequeue* queue, size_t size, unsigned n);
-int bytequeue_pop(bytequeue* queue, char* dest);
-int bytequeue_push(bytequeue* queue, char* data);
+int bytequeue_pop(bytequeue* queue, void* dest);
+int bytequeue_push(bytequeue* queue, void* data);
 
 #endif /* __AW_QUEUE_H__ */

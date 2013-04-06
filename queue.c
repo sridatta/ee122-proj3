@@ -14,7 +14,7 @@ int bytequeue_init(bytequeue* queue, size_t size, unsigned n) {
     return 0;
 }
 
-int bytequeue_pop(bytequeue* queue, char* dest) {
+int bytequeue_pop(bytequeue* queue, void* dest) {
     if (queue->filled == 0) {
         return -1;
     }
@@ -24,7 +24,7 @@ int bytequeue_pop(bytequeue* queue, char* dest) {
     return 0;
 }
 
-int bytequeue_push(bytequeue* queue, char* data) {
+int bytequeue_push(bytequeue* queue, void* data) {
     if (queue->filled == queue->capacity) {
         return -1;
     }
