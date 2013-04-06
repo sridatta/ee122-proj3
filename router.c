@@ -79,11 +79,13 @@ int main(int argc, char* argv[]) {
 	int which_queue = 1;
 	if (gettimeofday(&last_time, NULL) < 0)
 		perror("gettimeofday error");
-  while (count < MAX_PACKETS) {
+  while (count < streams*MAX_PACKETS) {
     int read_count = 0;
     ee122_packet p;
     struct sockaddr src_addr;
     int src_len = sizeof(src_addr);
+
+
     read_count = recvfrom(insock_1, &p, sizeof(p), 0, &src_addr, &src_len);
 		/* read_count == -1 and errno == EWOULDBLOCk or EAGAIN indicates nothing there */
 		if (read_count == -1 && errno != EWOULDBLOCK && errno != EAGAIN)
@@ -95,13 +97,26 @@ int main(int argc, char* argv[]) {
 			if (p.stream == 'A') {
 				bytequeue_push(&queue_1, &p);
 			}
-			if (streams == 2) {
-				if (p.stream == 'B') {
-					bytequeue_push(&queue_2, &p);
-				}
-			}
+
 			count++;
 		}
+
+    if (streams == 2) {
+      read_count = recvfrom(insock_2, &p, sizeof(p), 0, &src_addr, &src_len);
+      /* read_count == -1 and errno == EWOULDBLOCk or EAGAIN indicates nothing there */
+      if (read_count == -1 && errno != EWOULDBLOCK && errno != EAGAIN)
+        perror("Error reading from socket 2");
+      else if (read_count == 0)
+        perror("Socket 2 closed");
+      else if (read_count > 0) {
+        /* push packet */
+        if (p.stream == 'B') {
+          bytequeue_push(&queue_2, &p);
+        }
+
+        count++;
+      }
+    }
 		
 		gettimeofday(&curr_time, NULL);
 		timeval_subtract(&diff_time, &curr_time, &last_time);
