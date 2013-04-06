@@ -150,8 +150,10 @@ int main(int argc, char* argv[]) {
 					}
 				}
 				else {
-					s.avg_len = avg_1;
-					sendto(outsock_1, &s, sizeof(s), 0, p_1->ai_addr, p_1->ai_addrlen);
+          if (bytequeue_pop(&queue_1, &s) == 0) {
+            s.avg_len = avg_1;
+            sendto(outsock_1, &s, sizeof(s), 0, p_1->ai_addr, p_1->ai_addrlen);
+          }
 				}
 			}
 
