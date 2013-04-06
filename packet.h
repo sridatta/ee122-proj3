@@ -11,7 +11,7 @@ typedef struct {
     char stream; /* 1 bytes */
     uint32_t num_expected; /* 4 bytes */
     float avg_len; /* 4 bytes */
-    char garbage[128-(4+sizeof(timeval)+4+1+4+4)];
+    char garbage[128-(4+sizeof(struct timeval)+4+1+4+4)];
 } ee122_packet;
 
 #endif
