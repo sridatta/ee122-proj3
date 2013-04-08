@@ -34,6 +34,7 @@ int main(int argc, char* argv[]) {
 	struct addrinfo* p_1;
   int insock_1 = recv_port(NULL, argv[3]);
   int outsock_1 = send_port("localhost", argv[4], &p_1);
+  printf("p_1 = %d, outsock_1 = %d\n", p_1, outsock_1);
 
 	struct addrinfo* p_2 = NULL;
   int insock_2 = -1;
@@ -79,7 +80,8 @@ int main(int argc, char* argv[]) {
 	int which_queue = 1;
 	if (gettimeofday(&last_time, NULL) < 0)
 		perror("gettimeofday error");
-  while (count < streams*MAX_PACKETS) {
+  unsigned long timeout = 1000 / L;
+  while (count < streams*MAX_PACKETS && timeout > 0) {
     int read_count = 0;
     ee122_packet p;
     struct sockaddr src_addr;
@@ -122,6 +124,7 @@ int main(int argc, char* argv[]) {
 		timeval_subtract(&diff_time, &curr_time, &last_time);
       
 		if (diff_time.tv_sec * 1000000 + diff_time.tv_usec > L * 1000) {
+      timeout--;
 			/* update average queue length */
 			sent_count++;
 			sum_1 += queue_1.filled;
@@ -138,12 +141,14 @@ int main(int argc, char* argv[]) {
 					if (bytequeue_pop(&queue_1, &s) == 0) {
 						s.avg_len = avg_1;
 						sendto(outsock_1, &s, sizeof(s), 0, p_1->ai_addr, p_1->ai_addrlen);
+            write_count = sizeof(s);
 					}
 				}
 				else {
 					if (bytequeue_pop(&queue_2, &s) == 0) {
 						s.avg_len = avg_2;
 						sendto(outsock_2, &s, sizeof(s), 0, p_2->ai_addr, p_2->ai_addrlen);
+            write_count = sizeof(s);
 					}
 				}
 			}
@@ -153,6 +158,7 @@ int main(int argc, char* argv[]) {
   					if (bytequeue_pop(&queue_1, &s) == 0) {
 						  s.avg_len = avg_1;
 							sendto(outsock_1, &s, sizeof(s), 0, p_1->ai_addr, p_1->ai_addrlen);
+              write_count = sizeof(s);
   					}
   					which_queue = 2;
   				}
@@ -160,6 +166,7 @@ int main(int argc, char* argv[]) {
   					if (bytequeue_pop(&queue_2, &s) == 0) {
 							s.avg_len = avg_2;
 							sendto(outsock_2, &s, sizeof(s), 0, p_2->ai_addr, p_2->ai_addrlen);
+              write_count = sizeof(s);
   					}
   					which_queue = 1;
 					}
@@ -168,10 +175,14 @@ int main(int argc, char* argv[]) {
           if (bytequeue_pop(&queue_1, &s) == 0) {
             s.avg_len = avg_1;
             sendto(outsock_1, &s, sizeof(s), 0, p_1->ai_addr, p_1->ai_addrlen);
+            write_count = sizeof(s);
           }
 				}
 			}
 
+      if (write_count) {
+          timeout = 1000 / L;
+      }
 			/* update last_time */
 			last_time = curr_time;
 
@@ -226,6 +237,9 @@ int send_port(char* host, char* port, struct addrinfo** pptr) {
   int status;
   int sockfd;
 
+  printf("Generating send socket\n");
+  printf("Host = %s, port = %s\n", host, port);
+
   struct addrinfo hints;
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_INET;
@@ -251,6 +265,7 @@ int send_port(char* host, char* port, struct addrinfo** pptr) {
     fprintf(stderr, "No valid addresses");
     exit(-2);
   }
+  printf("p = %d, ", p);
 
 	*pptr = p;
   return sockfd;
