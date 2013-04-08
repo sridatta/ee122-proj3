@@ -33,8 +33,12 @@ ee122_packet deserialize_packet(unsigned char* buffer){
   p.timestamp.tv_sec = ntohl(((uint32_t*)buffer)[1]);
   p.timestamp.tv_usec = ntohl(((uint32_t*)buffer)[2]);
   p.R = ntohl(((uint32_t*)buffer)[3]);
-  p.avg_len = ntohl(((float*)buffer)[4]);
-  p.stream = buffer[5*4];
+  p.num_expected = ntohl(((uint32_t*) buffer)[4]);
+  ((char*) &p.avg_len)[0] = buffer[5*4+3];
+  ((char*) &p.avg_len)[1] = buffer[5*4+2];
+  ((char*) &p.avg_len)[2] = buffer[5*4+1];
+  ((char*) &p.avg_len)[3] = buffer[5*4];
+  p.stream = buffer[6*4];
   return p;
 }
 
