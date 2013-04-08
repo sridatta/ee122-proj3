@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
     return -3;
   }
 
-  int B = strtol(argv[1], NULL, 10);
+  int B = strtol(argv[2], NULL, 10);
   if (B <= 0) {
     printf("B negative, zero or not numeric.");
     return -3;
@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
 	if (streams == 2 && bytequeue_init(&queue_2, sizeof(ee122_packet), capacity_2) < 0) {
 		perror("Memory error allocating queue 2");
 	}
-	float avg_1, avg_2;
+	float avg_1 = 0, avg_2 = 0;
 
   unsigned long count = 0;
 	unsigned long sent_count = 0;
@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
 	if (gettimeofday(&last_time, NULL) < 0)
 		perror("gettimeofday error");
   unsigned long timeout = 1000 / L;
-  while (count < streams*MAX_PACKETS && timeout > 0) {
+  while (timeout > 0) {
     int read_count = 0;
     struct sockaddr src_addr;
     int src_len = sizeof(src_addr);
@@ -137,17 +137,6 @@ int main(int argc, char* argv[]) {
 		if (diff_time.tv_sec * 1000000 + diff_time.tv_usec > L * 1000) {
       timeout--;
 			/* update average queue length */
-			sent_count++;
-			sum_1 += queue_1.filled;
-			avg_1 = ((float)(sum_1)) / ((float)(sent_count));
-			if (streams == 2) {
-				sum_2 += queue_2.filled;
-				avg_2 = ((float)(sum_2)) / ((float)(sent_count));
-			}
-
-
-      printf("%u, %u\n", queue_1.filled , queue_2.filled);
-
 			ee122_packet s;
 			int write_count = 0;
 			if (prioritized) {
@@ -203,6 +192,15 @@ int main(int argc, char* argv[]) {
 
       if (write_count || count==0) {
           timeout = 1000 / L;
+          if(count != 0){
+            sent_count++;
+            sum_1 += queue_1.filled;
+            avg_1 = ((float)(sum_1)) / ((float)(sent_count));
+            if (streams == 2) {
+              sum_2 += queue_2.filled;
+              avg_2 = ((float)(sum_2)) / ((float)(sent_count));
+            }
+          }
           //printf("Resetting timeout. write_count is %d\n", write_count);
       }
 			/* update last_time */
@@ -210,6 +208,10 @@ int main(int argc, char* argv[]) {
 
 		}
 	}
+  close(insock_1);
+  if(streams == 2){
+    close(insock_2);
+  }
 }
 
 int recv_port(char* host, char* port) {
@@ -231,13 +233,13 @@ int recv_port(char* host, char* port) {
 
   for(p = res; p != NULL; p = p->ai_next) {
     if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
-        perror("Error creating listener socket");
+        perror("Error creating router listener socket");
         continue;
     }
 
     if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
       close(sockfd);
-      perror("Error binding listener socket");
+      perror("Error binding router listener socket");
       continue;
     }
 
@@ -245,7 +247,7 @@ int recv_port(char* host, char* port) {
   }
 
   if (p == NULL) {
-    fprintf(stderr, "listener: failed to bind socket\n");
+    fprintf(stderr, "router: failed to bind socket\n");
     return -2;
   }
 

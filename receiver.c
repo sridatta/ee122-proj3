@@ -14,6 +14,7 @@
 #include <math.h>
 
 #include "packet.h"
+#include "receiver.h"
 
 const int NUM_PACKETS = 500;
 
@@ -64,7 +65,7 @@ int main(int argc, char *argv[]){
 
   struct timeval timeout;
 
-  timeout.tv_sec = 1;
+  timeout.tv_sec = 4;
   timeout.tv_usec = 0;
   setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&timeout, sizeof(struct timeval));
 
@@ -78,7 +79,10 @@ int main(int argc, char *argv[]){
   float avg_len;
 
   unsigned char buff[128];
+  long R;
 
+  struct timeval last_time, curr_time, diff_time;
+  double sum = 0.0;
   while(bytes_read = recvfrom(sockfd, buff, sizeof(ee122_packet), 0, &src_addr, &src_len)){
     pkt = deserialize_packet(buff);
     if(bytes_read == -1){
@@ -86,15 +90,50 @@ int main(int argc, char *argv[]){
         break;
       }
     } else {
+
+      if(num_rcv == 0) {
+        R = pkt.R;
+      } else {
+        if(pkt.R != R){
+          perror("R CHANGED ON US!\n");
+        }
+      }
+
       num_rcv++;
       num_expected = pkt.num_expected;
       avg_len = pkt.avg_len;
+      gettimeofday(&curr_time, NULL);
+      last_time = pkt.timestamp;
+      timeval_subtract(&diff_time, &curr_time, &last_time);
+      sum += ((double)(diff_time.tv_sec)) + (diff_time.tv_usec / 1000000.0);
+      //printf("%f\n", avg_len);
     }
   }
 
-  printf("%d,%d,%lu,%lf,%lf\n", pkt.R, num_rcv, num_expected, 100*(((float)num_rcv)/num_expected), avg_len);
+  printf("%d,%d,%lu,%lf,%lf,%f\n", pkt.R, num_rcv, num_expected, 100*(((float)num_rcv)/num_expected), avg_len, sum/num_rcv);
 
   freeaddrinfo(res);
   close(sockfd);
   exit(0);
+}
+
+int timeval_subtract (struct timeval *result, struct timeval *x, struct timeval *y) { 
+	/* Perform the carry for the later subtraction by updating y. */
+  if (x->tv_usec < y->tv_usec) {
+    int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
+    y->tv_usec -= 1000000 * nsec;
+    y->tv_sec += nsec;
+  }
+  if (x->tv_usec - y->tv_usec > 1000000) {
+    int nsec = (x->tv_usec - y->tv_usec) / 1000000;
+    y->tv_usec += 1000000 * nsec;
+    y->tv_sec -= nsec;
+																														       }
+														      
+  /* Compute the time remaining to wait.
+     tv_usec is certainly positive. */
+  result->tv_sec = x->tv_sec - y->tv_sec;
+  result->tv_usec = x->tv_usec - y->tv_usec;
+
+	return x->tv_sec < y->tv_sec;
 }
