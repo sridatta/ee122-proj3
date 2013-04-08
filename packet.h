@@ -23,4 +23,15 @@ unsigned char * serialize_packet(unsigned char * buffer, ee122_packet p) {
     buffer[5*4] = p.stream;
 }
 
+ee122_packet deserialize_packet(unsigned char* buffer){
+  ee122_packet p;
+  p.seq_number = ntohl(((uint32_t*)buffer)[0]);
+  p.timestamp.tv_sec = ntohl(((uint32_t*)buffer)[1]);
+  p.timestamp.tv_usec = ntohl(((uint32_t*)buffer)[2]);
+  p.R = ntohl(((uint32_t*)buffer)[3]);
+  p.avg_len = ntohl(((float*)buffer)[4]);
+  p.stream = buffer[5*4];
+  return p;
+}
+
 #endif
