@@ -19,8 +19,9 @@ unsigned char * serialize_packet(unsigned char * buffer, ee122_packet p) {
     ((uint32_t*)buffer)[1] = htonl(p.timestamp.tv_sec);
     ((uint32_t*)buffer)[2] = htonl(p.timestamp.tv_usec);
     ((uint32_t*)buffer)[3] = htonl(p.R);
-    ((float*)buffer)[4] = p.avg_len;
-    buffer[5*4] = p.stream;
+    ((uint32_t*)buffer)[4] = htonl(p.num_expected);
+    ((float*)buffer)[5] = p.avg_len;
+    buffer[6*4] = p.stream;
 }
 
 ee122_packet deserialize_packet(unsigned char* buffer){
