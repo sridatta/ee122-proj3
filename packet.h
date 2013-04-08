@@ -15,11 +15,11 @@ typedef struct {
 } ee122_packet;
 
 unsigned char * serialize_packet(unsigned char * buffer, ee122_packet p) {
-    (uint32_t*)buffer[0] = htonl(p.seq_number);
-    (uint32_t*)buffer[1] = htonl(p.timeval.tv_sec);
-    (uint32_t*)buffer[2] = htonl(p.timeval.tv_usec);
-    (uint32_t*)buffer[3] = htonl(p.R);
-    (float*)buffer[4] = p.avg_len;
+    ((uint32_t*)buffer)[0] = htonl(p.seq_number);
+    ((uint32_t*)buffer)[1] = htonl(p.timestamp.tv_sec);
+    ((uint32_t*)buffer)[2] = htonl(p.timestamp.tv_usec);
+    ((uint32_t*)buffer)[3] = htonl(p.R);
+    ((float*)buffer)[4] = p.avg_len;
     buffer[5*4] = p.stream;
 }
 
