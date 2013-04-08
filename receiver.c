@@ -77,7 +77,10 @@ int main(int argc, char *argv[]){
   unsigned long num_expected = -1;
   float avg_len;
 
-  while(bytes_read = recvfrom(sockfd, &pkt, sizeof(ee122_packet), 0, &src_addr, &src_len)){
+  unsigned char buff[128];
+
+  while(bytes_read = recvfrom(sockfd, buff, sizeof(ee122_packet), 0, &src_addr, &src_len)){
+    pkt = deserialize_packet(buff);
     if(bytes_read == -1){
       if(num_rcv > 0){
         break;
