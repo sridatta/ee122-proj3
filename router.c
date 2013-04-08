@@ -180,7 +180,7 @@ int main(int argc, char* argv[]) {
 				}
 			}
 
-      if (write_count) {
+      if (write_count || count==0) {
           timeout = 1000 / L;
       }
 			/* update last_time */
