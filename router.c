@@ -31,6 +31,9 @@ int main(int argc, char* argv[]) {
 	if (argc == 9)
 		prioritized = 1;
 
+  printf("streams is %d, prioritized is %d\n", streams, prioritized);
+  //exit(0);
+
 	struct addrinfo* p_1;
   int insock_1 = recv_port(NULL, argv[3]);
   int outsock_1 = send_port("localhost", argv[4], &p_1);
@@ -65,7 +68,7 @@ int main(int argc, char* argv[]) {
 	unsigned capacity_1 = (unsigned)(B * (((double)(duty_cycle)) / 100.0));
 	unsigned capacity_2 = B - capacity_1;
 	bytequeue queue_1, queue_2;
-	unsigned long sum_1 = 0, sum_2 = 0;
+	unsigned long long sum_1 = 0, sum_2 = 0;
 	if (bytequeue_init(&queue_1, sizeof(ee122_packet), capacity_1) < 0) {
 		perror("Memory error allocating queue 1");
 	}
@@ -83,12 +86,14 @@ int main(int argc, char* argv[]) {
   unsigned long timeout = 1000 / L;
   while (count < streams*MAX_PACKETS && timeout > 0) {
     int read_count = 0;
-    ee122_packet p;
     struct sockaddr src_addr;
     int src_len = sizeof(src_addr);
 
+    unsigned char buff[128];
+    ee122_packet p;
 
-    read_count = recvfrom(insock_1, &p, sizeof(p), 0, &src_addr, &src_len);
+    read_count = recvfrom(insock_1, buff, 128, 0, &src_addr, &src_len);
+    p = deserialize_packet(buff);
 		/* read_count == -1 and errno == EWOULDBLOCk or EAGAIN indicates nothing there */
 		if (read_count == -1 && errno != EWOULDBLOCK && errno != EAGAIN)
 			perror("Error reading from socket 1");
@@ -96,15 +101,18 @@ int main(int argc, char* argv[]) {
 			perror("Socket 1 closed");
 		else if (read_count > 0) {
 			/* push packet */
+      //printf("stream ID is %d. seq is %d. R: %d. avg len: %f\n", p.stream, p.seq_number, p.R, p.avg_len);
 			if (p.stream == 'A') {
 				bytequeue_push(&queue_1, &p);
+        //printf("ADDED TO QUUEUE A\n");
 			}
 
 			count++;
 		}
 
     if (streams == 2) {
-      read_count = recvfrom(insock_2, &p, sizeof(p), 0, &src_addr, &src_len);
+      read_count = recvfrom(insock_2, buff, sizeof(p), 0, &src_addr, &src_len);
+      p = deserialize_packet(buff);
       /* read_count == -1 and errno == EWOULDBLOCk or EAGAIN indicates nothing there */
       if (read_count == -1 && errno != EWOULDBLOCK && errno != EAGAIN)
         perror("Error reading from socket 2");
@@ -112,8 +120,11 @@ int main(int argc, char* argv[]) {
         perror("Socket 2 closed");
       else if (read_count > 0) {
         /* push packet */
+        //printf("GOT SOMETHING FROM 2\n");
+        //printf("stream ID is %d. seq is %d. R: %d. avg len: %f\n", p.stream, p.seq_number, p.R, p.avg_len);
         if (p.stream == 'B') {
           bytequeue_push(&queue_2, &p);
+          //printf("ADDED TO QUUEUE B\n");
         }
 
         count++;
@@ -134,20 +145,25 @@ int main(int argc, char* argv[]) {
 				avg_2 = ((float)(sum_2)) / ((float)(sent_count));
 			}
 
+
+      printf("%u, %u\n", queue_1.filled , queue_2.filled);
+
 			ee122_packet s;
 			int write_count = 0;
 			if (prioritized) {
 				if (queue_1.filled) {
 					if (bytequeue_pop(&queue_1, &s) == 0) {
 						s.avg_len = avg_1;
-						sendto(outsock_1, &s, sizeof(s), 0, p_1->ai_addr, p_1->ai_addrlen);
+            serialize_packet(buff, s);
+						sendto(outsock_1, buff, sizeof(s), 0, p_1->ai_addr, p_1->ai_addrlen);
             write_count = sizeof(s);
 					}
 				}
 				else {
 					if (bytequeue_pop(&queue_2, &s) == 0) {
 						s.avg_len = avg_2;
-						sendto(outsock_2, &s, sizeof(s), 0, p_2->ai_addr, p_2->ai_addrlen);
+            serialize_packet(buff, s);
+						sendto(outsock_2, buff, sizeof(s), 0, p_2->ai_addr, p_2->ai_addrlen);
             write_count = sizeof(s);
 					}
 				}
@@ -157,7 +173,8 @@ int main(int argc, char* argv[]) {
   				if (which_queue == 1) {
   					if (bytequeue_pop(&queue_1, &s) == 0) {
 						  s.avg_len = avg_1;
-							sendto(outsock_1, &s, sizeof(s), 0, p_1->ai_addr, p_1->ai_addrlen);
+              serialize_packet(buff, s);
+							sendto(outsock_1, buff, sizeof(s), 0, p_1->ai_addr, p_1->ai_addrlen);
               write_count = sizeof(s);
   					}
   					which_queue = 2;
@@ -165,23 +182,28 @@ int main(int argc, char* argv[]) {
   				else {
   					if (bytequeue_pop(&queue_2, &s) == 0) {
 							s.avg_len = avg_2;
-							sendto(outsock_2, &s, sizeof(s), 0, p_2->ai_addr, p_2->ai_addrlen);
+              serialize_packet(buff, s);
+							sendto(outsock_2, buff, sizeof(s), 0, p_2->ai_addr, p_2->ai_addrlen);
               write_count = sizeof(s);
   					}
   					which_queue = 1;
 					}
 				}
 				else {
+          //printf("In the right else clause. quueue length %d\n", queue_1.filled);
           if (bytequeue_pop(&queue_1, &s) == 0) {
             s.avg_len = avg_1;
-            sendto(outsock_1, &s, sizeof(s), 0, p_1->ai_addr, p_1->ai_addrlen);
+            serialize_packet(buff, s);
+            sendto(outsock_1, buff, sizeof(s), 0, p_1->ai_addr, p_1->ai_addrlen);
             write_count = sizeof(s);
+            //printf("Sent something\n");
           }
 				}
 			}
 
       if (write_count || count==0) {
           timeout = 1000 / L;
+          //printf("Resetting timeout. write_count is %d\n", write_count);
       }
 			/* update last_time */
 			last_time = curr_time;
