@@ -63,6 +63,7 @@ int main(int argc, char *argv[]){
   struct timeval zero_timeout;
   zero_timeout.tv_usec = 0;
   zero_timeout.tv_sec = 0;
+
   for(i = 0; i < window_size; i++){
     memcpy(&timeouts[i], &zero_timeout, sizeof(zero_timeout));
   }
@@ -128,8 +129,8 @@ int main(int argc, char *argv[]){
         rtt = (0.6 * (diff_time.tv_sec * 1000000 + diff_time.tv_usec)) + 0.4*rtt;
 
         // Reset this timeout
-        timeout_start.tv_sec = 0;
-        timeout_start.tv_usec = 0;
+        timeouts[i].tv_usec = 0;
+        timeouts[i].tv_sec = 0;
 
         available_window += 1;
       }
@@ -139,7 +140,7 @@ int main(int argc, char *argv[]){
     if(available_window > 0 && q.filled != 0){
       bytequeue_pop(&q, &pkt);
 
-      pkt.seq_number = (++seq_no) % window_size;
+      pkt.seq_number = (seq_no) % window_size;
       serialize_packet(buff, pkt);
 
       //Store the packet into the packets buffer for possible transmission
@@ -147,6 +148,12 @@ int main(int argc, char *argv[]){
 
       sendto(send_sock, buff, sizeof(pkt), 0, p->ai_addr, p->ai_addrlen);
       available_window -= 1;
+
+      // Set this timeout
+      gettimeofday(&timeouts[pkt.seq_number], NULL);
+
+      seq_no++;
+
     }
 
   }
