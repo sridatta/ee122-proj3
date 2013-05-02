@@ -8,6 +8,8 @@ int bytequeue_init(bytequeue* queue, size_t size, unsigned n) {
     queue->typesize = size;
     queue->capacity = n;
     queue->filled = 0;
+    queue->tail = queue->memory;
+    queue->head = queue->memory;
     if (queue->memory == NULL) {
         return -1;
     }
@@ -30,7 +32,7 @@ int bytequeue_push(bytequeue* queue, void* data) {
     if (queue->filled == queue->capacity) {
         return -1;
     }
-    memcpy(queue->memory, data, queue->typesize);
+    memcpy(queue->tail, data, queue->typesize);
     queue->filled++;
     queue->tail += queue->typesize;
     if (queue->tail >= (queue->memory + queue->typesize * queue->capacity))
