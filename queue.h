@@ -8,6 +8,8 @@ typedef struct {
     unsigned capacity;
     unsigned filled;
     char* memory;
+    char* head;
+    char* tail;
 } bytequeue;
 
 int bytequeue_init(bytequeue* queue, size_t size, unsigned n);

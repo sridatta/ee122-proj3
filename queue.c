@@ -18,9 +18,11 @@ int bytequeue_pop(bytequeue* queue, void* dest) {
     if (queue->filled == 0) {
         return -1;
     }
-    queue->memory -= queue->typesize;
+    memcpy(dest, queue->head, queue->typesize);
     queue->filled--;
-    memcpy(dest, queue->memory, queue->typesize);
+    queue->head += queue->typesize;
+    if (queue->head >= (queue->memory + queue->typesize * queue->capacity))
+      queue->head = queue->memory;
     return 0;
 }
 
@@ -30,6 +32,8 @@ int bytequeue_push(bytequeue* queue, void* data) {
     }
     memcpy(queue->memory, data, queue->typesize);
     queue->filled++;
-    queue->memory += queue->typesize;
+    queue->tail += queue->typesize;
+    if (queue->tail >= (queue->memory + queue->typesize * queue->capacity))
+      queue->tail = queue->memory;
     return 0;
 }
