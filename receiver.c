@@ -78,7 +78,7 @@ int main(int argc, char *argv[]){
 
   int num_rcv = 0;
   int bytes_read = 0;
-  unsigned long num_expected = -1;
+  unsigned long attempted = 0;
   float avg_len;
 
   unsigned char buff[128];
@@ -90,6 +90,8 @@ int main(int argc, char *argv[]){
 
   struct timeval last_time, curr_time, diff_time;
   double sum = 0.0;
+
+  int seq_expected = 0;
   while(bytes_read = recvfrom(sockfd, buff, sizeof(ee122_packet), 0, &src_addr, &src_len)){
     pkt = deserialize_packet(buff);
     if(bytes_read == -1){
@@ -98,12 +100,10 @@ int main(int argc, char *argv[]){
       }
     } else {
 
+      //printf("Received packet with seq no: %d\n", ntohl(*((uint32_t*) buff)));
       if(num_rcv == 0) {
         R = pkt.R;
       } else {
-        if(pkt.R != R){
-          perror("R CHANGED ON US!\n");
-        }
       }
 
       if (flip_state) {
@@ -116,13 +116,18 @@ int main(int argc, char *argv[]){
       sleep_spec.tv_nsec = delay * 1000000;
       nanosleep(&sleep_spec, &sleep_spec);
 
-      num_rcv++;
-      num_expected = pkt.num_expected;
-      avg_len = pkt.avg_len;
-      gettimeofday(&curr_time, NULL);
-      last_time = pkt.timestamp;
-      timeval_subtract(&diff_time, &curr_time, &last_time);
-      sum += ((double)(diff_time.tv_sec)) + (diff_time.tv_usec / 1000000.0);
+      if(pkt.seq_number == seq_expected){
+        seq_expected = (seq_expected + 1) % (pkt.window_size + 1);
+
+        // Do the calcs
+        num_rcv++;
+        attempted = pkt.total_attempts;
+        avg_len = pkt.avg_len;
+        gettimeofday(&curr_time, NULL);
+        last_time = pkt.timestamp;
+        timeval_subtract(&diff_time, &curr_time, &last_time);
+        sum += ((double)(diff_time.tv_sec)) + (diff_time.tv_usec / 1000000.0);
+      }
 
       // Send ACK
       ee122_packet ack;
@@ -135,7 +140,8 @@ int main(int argc, char *argv[]){
     }
   }
 
-  printf("%d,%d,%lu,%lf,%lf,%f\n", pkt.R, num_rcv, num_expected, 100*(((float)num_rcv)/num_expected), avg_len, sum/num_rcv);
+  printf("%d,%f,%lf\n", pkt.R, ((float) num_rcv)/attempted, avg_len);
+  printf("num received: %lu, attempted: %d\n", num_rcv, attempted);
 
   freeaddrinfo(res);
   close(sockfd);
@@ -215,7 +221,6 @@ int send_port(char* host, char* port, struct addrinfo** pptr) {
     fprintf(stderr, "No valid addresses");
     exit(-2);
   }
-  printf("p = %d, ", p);
 
 	*pptr = p;
   return sockfd;

@@ -126,7 +126,6 @@ int main(int argc, char* argv[]) {
           bytequeue_push(&queue_2, &p);
           //printf("ADDED TO QUUEUE B\n");
         }
-
         count++;
       }
     }
