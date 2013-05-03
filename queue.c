@@ -5,6 +5,7 @@
 
 int bytequeue_init(bytequeue* queue, size_t size, unsigned n) {
     queue->memory = malloc(size * n);
+    queue->end = queue->memory + (size * n);
     queue->typesize = size;
     queue->capacity = n;
     queue->filled = 0;
@@ -23,7 +24,7 @@ int bytequeue_pop(bytequeue* queue, void* dest) {
     memcpy(dest, queue->head, queue->typesize);
     queue->filled--;
     queue->head += queue->typesize;
-    if (queue->head >= (queue->memory + queue->typesize * queue->capacity))
+    if (queue->head == queue->end)
       queue->head = queue->memory;
     return 0;
 }
@@ -35,7 +36,7 @@ int bytequeue_push(bytequeue* queue, void* data) {
     memcpy(queue->tail, data, queue->typesize);
     queue->filled++;
     queue->tail += queue->typesize;
-    if (queue->tail >= (queue->memory + queue->typesize * queue->capacity))
+    if (queue->tail == queue->end)
       queue->tail = queue->memory;
     return 0;
 }

@@ -10,6 +10,7 @@ typedef struct {
     char* memory;
     char* head;
     char* tail;
+    char* end;
 } bytequeue;
 
 int bytequeue_init(bytequeue* queue, size_t size, unsigned n);
