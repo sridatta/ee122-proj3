@@ -59,15 +59,15 @@ int main(int argc, char *argv[]){
   int seq_no = 0;
   int available_window = window_size;
 
-  struct timeval timeouts[window_size];
-  ee122_packet packets[window_size];
+  struct timeval timeouts[window_size+1];
+  ee122_packet packets[window_size+1];
 
   int i;
   struct timeval zero_timeout;
   zero_timeout.tv_usec = 0;
   zero_timeout.tv_sec = 0;
 
-  for(i = 0; i < window_size; i++){
+  for(i = 0; i < window_size+1; i++){
     memcpy(&timeouts[i], &zero_timeout, sizeof(zero_timeout));
   }
 
@@ -85,19 +85,25 @@ int main(int argc, char *argv[]){
   int src_len = sizeof(src_addr);
   int last_received = -1;
   unsigned total_attempts = 0;
+  unsigned seconds = 0;
+  unsigned fuckups = 0;
 
   while(1){
     gettimeofday(&curr_time, NULL);
 
     timeval_subtract(&diff_time, &curr_time, &start_time);
 
+    if (diff_time.tv_sec * 1000000 + diff_time.tv_usec > seconds * 1000000) {
+      printf("%f,%d\n", rtt, seconds);
+      seconds++;
+    }
     // Stop sending after 60 seconds
     if(diff_time.tv_sec * 1000000 + diff_time.tv_usec > 60*1000000){ break; }
 
     // Check timeouts. If timeout reached, retransmit that packet and all following.
     int retransmitting = -1;
     int i;
-    for(i=0; i < window_size; i++){
+    for(i=0; i < window_size+1; i++){
       struct timeval timeout = timeouts[i];
       if(timeout.tv_sec == 0 && timeout.tv_usec == 0) continue;
 
@@ -112,14 +118,18 @@ int main(int argc, char *argv[]){
       i = retransmitting;
       do {
         struct timeval timeout = timeouts[i];
-        if(timeout.tv_sec == 0 && timeout.tv_usec == 0) continue;
-        printf("Retransmitting seq_no == %d, stream == %c, rtt == %f\n", packets[i].seq_number, packets[i].stream, rtt);
+        if(timeout.tv_sec == 0 && timeout.tv_usec == 0) {
+          i = (i + 1) % (window_size+1);
+          continue;
+        }
+        //printf("Retransmitting seq_no == %d, stream == %c, rtt == %f\n", packets[i].seq_number, packets[i].stream, rtt);
         // Reset the timeout for this packet and send.
         gettimeofday(&(timeouts[i]), NULL);
         serialize_packet(buff, packets[i]);
         sendto(send_sock, buff, sizeof(packets[i]), 0, p->ai_addr, p->ai_addrlen);
-        i = (i + 1) % window_size;
+        i = (i + 1) % (window_size+1);
         total_attempts++;
+        fuckups++;
       } while (i != retransmitting);
     }
 
@@ -135,12 +145,12 @@ int main(int argc, char *argv[]){
     int bytes_read = recvfrom(recv_sock, buff, sizeof(ee122_packet), 0, &src_addr, &src_len);
     if(bytes_read > 0){
       rcv_pkt = deserialize_packet(buff);
-      if(rcv_pkt.stream == 'Z' && rcv_pkt.seq_number == (last_received + 1) % window_size){
+      if(rcv_pkt.stream == 'Z' && rcv_pkt.seq_number == (last_received + 1) % (window_size+1)){
         struct timeval timeout_start = rcv_pkt.timestamp;
 
         // Learn RTT
         timeval_subtract(&diff_time, &curr_time, &timeout_start);
-        printf("RTT difftime, tv_sec == %d, tv_usec == %d\n", diff_time.tv_sec, diff_time.tv_usec); 
+        //printf("RTT difftime, tv_sec == %d, tv_usec == %d\n", diff_time.tv_sec, diff_time.tv_usec); 
         rtt = (0.6 * (diff_time.tv_sec * 1000000 + diff_time.tv_usec)) + 0.4*rtt;
 
         // Reset this timeout
@@ -148,10 +158,10 @@ int main(int argc, char *argv[]){
         timeouts[rcv_pkt.seq_number].tv_sec = 0;
 
         available_window += 1;
-        last_received = rcv_pkt.seq_number % window_size;
+        last_received = rcv_pkt.seq_number % (window_size+1);
       }
       else {
-        printf("Received ACK with seq = %d, expecting = %d\n", rcv_pkt.seq_number, (last_received + 1) % window_size);
+        //printf("Received ACK with seq = %d, expecting = %d\n", rcv_pkt.seq_number, (last_received + 1) % window_size);
       }
     }
 
@@ -161,11 +171,11 @@ int main(int argc, char *argv[]){
 
       total_attempts++;
 
-      pkt.seq_number = (seq_no) % window_size;
+      pkt.seq_number = (seq_no) % (window_size+1);
       pkt.timestamp = curr_time;
       pkt.total_attempts = total_attempts;
       
-      printf("Sending. Seq_no == %d, stream == %c\n", pkt.seq_number, pkt.stream);
+      //printf("Sending. Seq_no == %d, stream == %c\n", pkt.seq_number, pkt.stream);
       serialize_packet(buff, pkt);
 
       //Store the packet into the packets buffer for possible transmission
@@ -179,11 +189,11 @@ int main(int argc, char *argv[]){
       gettimeofday(&timeouts[pkt.seq_number], NULL);
 
       seq_no++;
-
-      if (seq_no > 5*window_size) return -1;
     }
 
   }
+
+  printf("Total fuckups: %d. Total total:%d\n", fuckups, total_attempts);
 
   close(send_sock);
   close(recv_sock);
