@@ -44,7 +44,6 @@ int main(int argc, char *argv[]){
   pkt.R = R;
   pkt.stream = *stream_id;
   printf("pkt.stream = %c\n", pkt.stream);
-  pkt.num_expected = NUM_PACKETS;
   pkt.avg_len = 0;
   pkt.window_size = window_size;
 
@@ -85,6 +84,7 @@ int main(int argc, char *argv[]){
   struct sockaddr src_addr;
   int src_len = sizeof(src_addr);
   int last_received = -1;
+  unsigned total_attempts = 0;
 
   while(1){
     gettimeofday(&curr_time, NULL);
@@ -119,6 +119,7 @@ int main(int argc, char *argv[]){
         serialize_packet(buff, packets[i]);
         sendto(send_sock, buff, sizeof(packets[i]), 0, p->ai_addr, p->ai_addrlen);
         i = (i + 1) % window_size;
+        total_attempts++;
       } while (i != retransmitting);
     }
 
@@ -158,8 +159,12 @@ int main(int argc, char *argv[]){
     if(available_window > 0 && q.filled != 0){
       bytequeue_pop(&q, &pkt);
 
+      total_attempts++;
+
       pkt.seq_number = (seq_no) % window_size;
       pkt.timestamp = curr_time;
+      pkt.total_attempts = total_attempts;
+      
       printf("Sending. Seq_no == %d, stream == %c\n", pkt.seq_number, pkt.stream);
       serialize_packet(buff, pkt);
 
