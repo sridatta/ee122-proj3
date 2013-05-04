@@ -17,6 +17,7 @@
 #include "receiver.h"
 
 const int NUM_PACKETS = 500;
+const int MAX_WINDOW = 128;
 
 int main(int argc, char *argv[]){
 
@@ -117,7 +118,7 @@ int main(int argc, char *argv[]){
       nanosleep(&sleep_spec, &sleep_spec);
 
       if(pkt.seq_number == seq_expected){
-        seq_expected = (seq_expected + 1) % (pkt.window_size + 1);
+        seq_expected = (seq_expected + 1) % (MAX_WINDOW + 1);
 
         // Do the calcs
         num_rcv++;
