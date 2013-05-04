@@ -80,9 +80,9 @@ int main(int argc, char *argv[]){
   int num_rcv = 0;
   int bytes_read = 0;
   unsigned long attempted = 0;
-  float avg_len;
+  float avg_len ;
 
-  unsigned char buff[128];
+  unsigned char buff[sizeof(ee122_packet)];
   long R;
 
   int delay;
@@ -93,13 +93,19 @@ int main(int argc, char *argv[]){
   double sum = 0.0;
 
   int seq_expected = 0;
+  int gotten = 0;
+
   while(bytes_read = recvfrom(sockfd, buff, sizeof(ee122_packet), 0, &src_addr, &src_len)){
-    pkt = deserialize_packet(buff);
     if(bytes_read == -1){
       if(num_rcv > 0){
         break;
       }
     } else {
+      if(bytes_read == 0){
+        break;
+      }
+
+      pkt = deserialize_packet(buff);
 
       //printf("Received packet with seq no: %d\n", ntohl(*((uint32_t*) buff)));
       if(num_rcv == 0) {
@@ -116,7 +122,7 @@ int main(int argc, char *argv[]){
 
       sleep_spec.tv_nsec = delay * 1000000;
       nanosleep(&sleep_spec, &sleep_spec);
-
+      printf("expecting: %d, actually got %d\n", seq_expected, pkt.seq_number);
       if(pkt.seq_number == seq_expected){
         seq_expected = (seq_expected + 1) % (MAX_WINDOW + 1);
 
@@ -129,6 +135,8 @@ int main(int argc, char *argv[]){
         timeval_subtract(&diff_time, &curr_time, &last_time);
         sum += ((double)(diff_time.tv_sec)) + (diff_time.tv_usec / 1000000.0);
       }
+
+      gotten = pkt.total_attempts;
 
       // Send ACK
       ee122_packet ack;
@@ -143,6 +151,7 @@ int main(int argc, char *argv[]){
 
   printf("%d,%f,%lf\n", pkt.R, ((float) num_rcv)/attempted, avg_len);
   printf("num received: %lu, attempted: %d\n", num_rcv, attempted);
+  printf("gotten: %d\n", gotten);
 
   freeaddrinfo(res);
   close(sockfd);
