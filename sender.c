@@ -75,7 +75,7 @@ int main(int argc, char *argv[]){
   bytequeue_init(&q, sizeof(ee122_packet), window_size);
 
   float rtt = 400*1000;
-  char buff[128];
+  char buff[sizeof(ee122_packet)];
 
   float next_wait = rand_poisson(R);
   printf("next wait: %f\n", next_wait);
