@@ -79,11 +79,12 @@ int main(int argc, char* argv[]) {
 
   unsigned long count = 0;
 	unsigned long sent_count = 0;
-	struct timeval last_time, curr_time, diff_time;
+	struct timeval last_time, curr_time, diff_time, last_print;
 	int which_queue = 1;
+  gettimeofday(&last_print, NULL); 
 	if (gettimeofday(&last_time, NULL) < 0)
 		perror("gettimeofday error");
-  unsigned long timeout = 1000 / L;
+  unsigned long timeout = 20000 / L;
   while (timeout > 0) {
     int read_count = 0;
     struct sockaddr src_addr;
@@ -131,8 +132,14 @@ int main(int argc, char* argv[]) {
     }
 		
 		gettimeofday(&curr_time, NULL);
-		timeval_subtract(&diff_time, &curr_time, &last_time);
+
+		timeval_subtract(&diff_time, &curr_time, &last_print);
+		if (diff_time.tv_sec * 1000000 + diff_time.tv_usec > 1000000) {
+      printf("%d,%d\n", queue_1.filled, queue_2.filled);
+      gettimeofday(&last_print, NULL);
+    }
       
+		timeval_subtract(&diff_time, &curr_time, &last_time);
 		if (diff_time.tv_sec * 1000000 + diff_time.tv_usec > L * 1000) {
       timeout--;
 			/* update average queue length */
@@ -207,6 +214,7 @@ int main(int argc, char* argv[]) {
 
 		}
 	}
+  printf("Getting to the end\n");
   close(insock_1);
   if(streams == 2){
     close(insock_2);
