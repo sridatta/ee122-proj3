@@ -89,11 +89,15 @@ int main(int argc, char *argv[]){
   struct timespec sleep_spec;
   sleep_spec.tv_sec = 0;
 
-  struct timeval last_time, curr_time, diff_time;
+  struct timeval last_time, curr_time, diff_time, last_print;
+  gettimeofday(&last_print, NULL);
+
   double sum = 0.0;
 
   int seq_expected = 0;
   int gotten = 0;
+
+  float efficiency = 0;
 
   while(bytes_read = recvfrom(sockfd, buff, sizeof(ee122_packet), 0, &src_addr, &src_len)){
     if(bytes_read == -1){
@@ -133,6 +137,12 @@ int main(int argc, char *argv[]){
         last_time = pkt.timestamp;
         timeval_subtract(&diff_time, &curr_time, &last_time);
         sum += ((double)(diff_time.tv_sec)) + (diff_time.tv_usec / 1000000.0);
+
+        timeval_subtract(&diff_time, &curr_time, &last_print);
+        if (diff_time.tv_sec * 1000000 + diff_time.tv_usec > 1000000) {
+          printf("%f\n", ((float) num_rcv)/attempted);
+          gettimeofday(&last_print, NULL);
+        }
       }
 
       gotten = pkt.total_attempts;

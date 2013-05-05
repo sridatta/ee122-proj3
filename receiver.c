@@ -68,7 +68,7 @@ int main(int argc, char *argv[]){
 
   struct timeval timeout;
 
-  timeout.tv_sec = 4;
+  timeout.tv_sec = 14;
   timeout.tv_usec = 0;
   setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&timeout, sizeof(struct timeval));
 
@@ -80,6 +80,7 @@ int main(int argc, char *argv[]){
   int bytes_read = 0;
   unsigned long attempted = 0;
   float avg_len;
+  float rtt;
 
   unsigned char buff[128];
   long R;
@@ -122,6 +123,7 @@ int main(int argc, char *argv[]){
         // Do the calcs
         num_rcv++;
         attempted = pkt.total_attempts;
+        rtt = pkt.timeout;
         avg_len = pkt.avg_len;
         gettimeofday(&curr_time, NULL);
         last_time = pkt.timestamp;
