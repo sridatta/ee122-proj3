@@ -86,7 +86,7 @@ int main(int argc, char *argv[]){
   int last_received = -1;
   unsigned total_attempts = 0;
   unsigned seconds = 0;
-  unsigned fuckups = 0;
+  unsigned errors = 0;
 
   while(1){
     gettimeofday(&curr_time, NULL);
@@ -129,7 +129,7 @@ int main(int argc, char *argv[]){
         sendto(send_sock, buff, sizeof(packets[i]), 0, p->ai_addr, p->ai_addrlen);
         i = (i + 1) % (window_size+1);
         total_attempts++;
-        fuckups++;
+        errors++;
       } while (i != retransmitting);
     }
 
@@ -174,6 +174,7 @@ int main(int argc, char *argv[]){
       pkt.seq_number = (seq_no) % (window_size+1);
       pkt.timestamp = curr_time;
       pkt.total_attempts = total_attempts;
+      pkt.timeout = rtt;
       
       //printf("Sending. Seq_no == %d, stream == %c\n", pkt.seq_number, pkt.stream);
       serialize_packet(buff, pkt);
@@ -193,7 +194,7 @@ int main(int argc, char *argv[]){
 
   }
 
-  printf("Total fuckups: %d. Total total:%d\n", fuckups, total_attempts);
+  printf("Total errors: %d. Total total:%d\n", errors, total_attempts);
 
   close(send_sock);
   close(recv_sock);

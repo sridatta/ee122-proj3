@@ -78,10 +78,18 @@ int main(int argc, char *argv[]){
     gettimeofday(&curr_time, NULL);
     timeval_subtract(&diff_time, &curr_time, &start_time);
     if(diff_time.tv_sec * 1000000 + diff_time.tv_usec > 60*1000000){ break; }
+
+    if (flip_state()) {
+        R = 10;
+    }
+    else {
+        R = 9999999; // essentially stops sending
+    }
     
     sleep_spec.tv_nsec = rand_poisson(R)*1000000;
     pkt.seq_number = seq_no;
     pkt.timestamp = curr_time;
+    pkt.R = R;
 
     sendto(sockfd, &pkt, sizeof(ee122_packet), 0, p->ai_addr, p->ai_addrlen);
     nanosleep(&sleep_spec, &sleep_spec);
@@ -117,4 +125,24 @@ int timeval_subtract (struct timeval *result, struct timeval *x, struct timeval 
   result->tv_usec = x->tv_usec - y->tv_usec;
 
 	return x->tv_sec < y->tv_sec;
+}
+
+int flip_state () {
+    const int seconds = 5;
+    static struct timeval lastflip;
+    static int first = 1;
+    static int ret = 0;
+    if (first) {
+        gettimeofday(&lastflip, NULL);
+    }
+
+    struct timeval result, currtime;
+    gettimeofday(&currtime, NULL);
+    timeval_subtract(&result, &currtime, &lastflip);
+    if (result.tv_sec >= seconds) {
+        if (ret) ret = 0;
+        else ret = 1;
+        lastflip = currtime;
+    }
+    return ret;
 }

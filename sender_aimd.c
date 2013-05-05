@@ -91,7 +91,7 @@ int main(int argc, char *argv[]){
   unsigned int padding = 56;
   unsigned total_attempts = 0;
   unsigned seconds = 0;
-  unsigned fuckups = 0;
+  unsigned errors = 0;
   unsigned acks = 0;
   int done = 0;
 
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]){
       seconds++;
     }
     // Stop sending after 60 seconds
-    if(diff_time.tv_sec * 1000000 + diff_time.tv_usec > 10*1000000){ done = 1; }
+    if(diff_time.tv_sec * 1000000 + diff_time.tv_usec > 60*1000000){ done = 1; }
 
     if (done && in_flight == 0) { break; }
     // Check timeouts. If timeout reached, retransmit that packet and all following.
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]){
         // Reset the timeout for this packet and send.
         gettimeofday(&(timeouts[i]), NULL);
         total_attempts++;
-        fuckups++;
+        errors++;
         packets[i].total_attempts = total_attempts;
         serialize_packet(buff, packets[i]);
         sendto(send_sock, buff, sizeof(packets[i]), 0, p->ai_addr, p->ai_addrlen);
@@ -192,6 +192,7 @@ int main(int argc, char *argv[]){
       pkt.seq_number = (seq_no) % (SEQ_MAX);
       pkt.timestamp = curr_time;
       pkt.total_attempts = total_attempts;
+      pkt.timeout = rtt;
       
       serialize_packet(buff, pkt);
 
@@ -210,7 +211,7 @@ int main(int argc, char *argv[]){
 
   }
 
-  printf("Total fuckups: %d. Total successes: %d. Total total:%d\n", fuckups, total_attempts - fuckups, total_attempts);
+  printf("Total errors: %d. Total successes: %d. Total total:%d\n", errors, total_attempts - errors, total_attempts);
 
   close(send_sock);
   close(recv_sock);
