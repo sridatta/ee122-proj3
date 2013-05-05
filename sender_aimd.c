@@ -133,6 +133,7 @@ int main(int argc, char *argv[]){
         total_attempts++;
         fuckups++;
         packets[i].total_attempts = total_attempts;
+        printf("Resend.. Seq_no == %d, stream == %c, total_attempts == %d\n", packets[i].seq_number, packets[i].stream, packets[i].total_attempts);
         serialize_packet(buff, packets[i]);
         sendto(send_sock, buff, sizeof(packets[i]), 0, p->ai_addr, p->ai_addrlen);
         i = (i + 1) % SEQ_MAX;
@@ -176,7 +177,7 @@ int main(int argc, char *argv[]){
           available_window++;
           acks = 0;
         }
-        if (available_window > window_size) available_window = window_size;
+        //if (available_window > window_size) available_window = window_size;
       }
       else {
         //printf("Received ACK with seq = %d, expecting = %d\n", rcv_pkt.seq_number, (last_received + 1) % window_size);
@@ -185,6 +186,7 @@ int main(int argc, char *argv[]){
 
     // Check available window. If available, dequeue and send a packet.
     if(available_window > 0 && q.filled != 0 && !done){
+      //printf("window size == %d, available window == %d\n", window_size, available_window);
       bytequeue_pop(&q, &pkt);
 
       total_attempts++;
