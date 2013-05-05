@@ -141,7 +141,6 @@ int main(int argc, char *argv[]){
   }
 
   printf("%d,%f,%lf\n", pkt.R, ((float) num_rcv)/attempted, avg_len);
-  printf("num received: %lu, attempted: %d\n", num_rcv, attempted);
 
   freeaddrinfo(res);
   close(sockfd);
