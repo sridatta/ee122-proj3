@@ -122,7 +122,6 @@ int main(int argc, char *argv[]){
 
       sleep_spec.tv_nsec = delay * 1000000;
       nanosleep(&sleep_spec, &sleep_spec);
-      printf("expecting: %d, actually got %d\n", seq_expected, pkt.seq_number);
       if(pkt.seq_number == seq_expected){
         seq_expected = (seq_expected + 1) % (MAX_WINDOW + 1);
 
@@ -150,8 +149,6 @@ int main(int argc, char *argv[]){
   }
 
   printf("%d,%f,%lf\n", pkt.R, ((float) num_rcv)/attempted, avg_len);
-  printf("num received: %lu, attempted: %d\n", num_rcv, attempted);
-  printf("gotten: %d\n", gotten);
 
   freeaddrinfo(res);
   close(sockfd);
