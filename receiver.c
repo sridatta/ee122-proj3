@@ -79,10 +79,12 @@ int main(int argc, char *argv[]){
   int write_count;
   char fbuff[sizeof(pkt.payload)];
   memset(fbuff,0,sizeof(fbuff));
+
   FILE *fd = fopen(argv[4], "wb");
   if(NULL == fd) {
     fprintf(stderr, "The file %s is probably not a legal file or directory: errno %d\n", argv[5], errno);
     return 1;
+  } else {
   }
 
   int num_rcv = 0;
@@ -91,7 +93,7 @@ int main(int argc, char *argv[]){
   float avg_len;
   float rtt;
 
-  unsigned char buff[128];
+  unsigned char buff[sizeof(ee122_packet)];
   long R;
 
   int delay;
