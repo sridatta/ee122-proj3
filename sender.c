@@ -37,7 +37,7 @@ int main(int argc, char *argv[]){
 
 	struct addrinfo* p;
   int send_sock = send_port(argv[1], argv[2], &p);
-  int recv_sock = recv_port(NULL, "5433");// TODO fix
+  int recv_sock = recv_port(NULL, argv[2]);// TODO fix
 
 
   printf("Stream id = %s\n", stream_id);
