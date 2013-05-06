@@ -4,6 +4,8 @@
 #include <time.h>
 #include <stdint.h>
 
+const int PAY_LEN = 512;
+
 typedef struct {
     uint32_t seq_number; /* 4 bytes */
     struct timeval timestamp; /* 8 bytes */
@@ -13,7 +15,7 @@ typedef struct {
     float timeout; /* 4 bytes */
     float avg_len; /* 4 bytes */
     char stream; /* 1 bytes */
-    char garbage[128-(4+sizeof(struct timeval)+4+1+4+4+4+4)];
+    char payload[512];
 } ee122_packet;
 
 unsigned char * serialize_packet(unsigned char * buffer, ee122_packet p) {
@@ -32,6 +34,7 @@ unsigned char * serialize_packet(unsigned char * buffer, ee122_packet p) {
     buffer[7*4+2] = ((char*)&p.avg_len)[1];
     buffer[7*4+3] = ((char*)&p.avg_len)[0];
     buffer[8*4] = p.stream;
+    memcpy(&buffer[8*4+1], p.payload, sizeof(p.payload));
 }
 
 ee122_packet deserialize_packet(unsigned char* buffer){
@@ -51,6 +54,7 @@ ee122_packet deserialize_packet(unsigned char* buffer){
   ((char*) &p.avg_len)[2] = buffer[7*4+1];
   ((char*) &p.avg_len)[3] = buffer[7*4];
   p.stream = buffer[8*4];
+  memcpy(p.payload, &buffer[8*4+1], sizeof(p.payload));
   return p;
 }
 

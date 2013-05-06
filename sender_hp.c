@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <time.h>
 #include <sys/time.h>
@@ -16,8 +17,8 @@ const int NUM_PACKETS = 500;
 
 int main(int argc, char *argv[]){
 
-  if(argc != 5){
-    printf("usage: host port R stream_id\n");
+  if(argc != 6){
+    printf("usage: host port R stream_id filename\n");
     exit(0);
   }
 
@@ -65,6 +66,15 @@ int main(int argc, char *argv[]){
   pkt.stream = *stream_id;
   pkt.avg_len = 0;
 
+  int read_count;
+  char fbuff[sizeof(pkt.payload)];
+  memset(fbuff,0,sizeof(fbuff));
+  FILE *fd = fopen(argv[6], "r");
+  if(NULL == fd) {
+    fprintf(stderr, "fopen() error\n");
+    return 1;
+  }
+
   struct timespec sleep_spec;
   sleep_spec.tv_sec = 0;
 
@@ -82,6 +92,13 @@ int main(int argc, char *argv[]){
     sleep_spec.tv_nsec = rand_poisson(R)*1000000;
     pkt.seq_number = seq_no;
     pkt.timestamp = curr_time;
+    read_count = fread(pkt.payload, sizeof(char), sizeof(pkt.payload), fd);
+    
+    if (feof(fd)) break;
+    if(ferror(fd)){
+       fprintf(stderr, "error: %s\n", strerror(errno));
+       exit(3);
+    }
 
     sendto(sockfd, &pkt, sizeof(ee122_packet), 0, p->ai_addr, p->ai_addrlen);
     nanosleep(&sleep_spec, &sleep_spec);

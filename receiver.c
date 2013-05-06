@@ -20,8 +20,8 @@ const int NUM_PACKETS = 500;
 
 int main(int argc, char *argv[]){
 
-  if(argc != 4){
-    printf("usage: port sender_hostname ack_port\n");
+  if(argc != 5){
+    printf("usage: port sender_hostname ack_port filename\n");
     exit(0);
   }
 
@@ -68,13 +68,22 @@ int main(int argc, char *argv[]){
 
   struct timeval timeout;
 
-  timeout.tv_sec = 14;
+  timeout.tv_sec = 4;
   timeout.tv_usec = 0;
   setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&timeout, sizeof(struct timeval));
 
   struct sockaddr src_addr;
   int src_len = sizeof src_addr;
   ee122_packet pkt;
+
+  int write_count;
+  char fbuff[sizeof(pkt.payload)];
+  memset(fbuff,0,sizeof(fbuff));
+  FILE *fd = fopen(argv[4], "wb");
+  if(NULL == fd) {
+    fprintf(stderr, "The file %s is probably not a legal file or directory: errno %d\n", argv[5], errno);
+    return 1;
+  }
 
   int num_rcv = 0;
   int bytes_read = 0;
@@ -94,12 +103,13 @@ int main(int argc, char *argv[]){
 
   int seq_expected = 0;
   while(bytes_read = recvfrom(sockfd, buff, sizeof(ee122_packet), 0, &src_addr, &src_len)){
-    pkt = deserialize_packet(buff);
     if(bytes_read == -1){
       if(num_rcv > 0){
         break;
       }
     } else {
+      pkt = deserialize_packet(buff);
+
 
       //printf("Received packet with seq no: %d\n", ntohl(*((uint32_t*) buff)));
       if(num_rcv == 0) {
@@ -118,6 +128,11 @@ int main(int argc, char *argv[]){
       nanosleep(&sleep_spec, &sleep_spec);
 
       if(pkt.seq_number == seq_expected){
+        write_count = fwrite(pkt.payload, sizeof(char), sizeof(pkt.payload), fd);
+        if (ferror(fd)) {
+          fprintf(stderr, "error: %s\n", strerror(errno));
+          exit(3);
+        }
         seq_expected = (seq_expected + 1) % (pkt.window_size + 1);
 
         // Do the calcs

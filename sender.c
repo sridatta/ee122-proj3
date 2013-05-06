@@ -5,6 +5,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include <time.h>
 #include <sys/time.h>
@@ -18,8 +19,8 @@ const int NUM_PACKETS = 500;
 
 int main(int argc, char *argv[]){
 
-  if(argc != 6){
-    printf("usage: host port R stream_id window_size\n");
+  if(argc != 7){
+    printf("usage: host port R stream_id window_size filename\n");
     exit(0);
   }
 
@@ -36,7 +37,7 @@ int main(int argc, char *argv[]){
 
 	struct addrinfo* p;
   int send_sock = send_port(argv[1], argv[2], &p);
-  int recv_sock = recv_port(NULL, argv[2]);
+  int recv_sock = recv_port(NULL, "5433");// TODO fix
 
 
   printf("Stream id = %s\n", stream_id);
@@ -46,6 +47,15 @@ int main(int argc, char *argv[]){
   printf("pkt.stream = %c\n", pkt.stream);
   pkt.avg_len = 0;
   pkt.window_size = window_size;
+
+  int read_count;
+  char fbuff[sizeof(pkt.payload)];
+  memset(fbuff,0,sizeof(fbuff));
+  FILE *fd = fopen(argv[6], "r");
+  if(NULL == fd) {
+    fprintf(stderr, "fopen() error\n");
+    return 1;
+  }
 
   ee122_packet rcv_pkt;
 
@@ -88,7 +98,7 @@ int main(int argc, char *argv[]){
   unsigned seconds = 0;
   unsigned errors = 0;
 
-  while(1){
+  while (1) {
     gettimeofday(&curr_time, NULL);
 
     timeval_subtract(&diff_time, &curr_time, &start_time);
@@ -175,7 +185,13 @@ int main(int argc, char *argv[]){
       pkt.timestamp = curr_time;
       pkt.total_attempts = total_attempts;
       pkt.timeout = rtt;
+      read_count = fread(pkt.payload, sizeof(char), sizeof(pkt.payload), fd);
       
+      if (feof(fd)) break;
+      if(ferror(fd)){
+         fprintf(stderr, "error: %s\n", strerror(errno));
+         exit(3);
+       }
       //printf("Sending. Seq_no == %d, stream == %c\n", pkt.seq_number, pkt.stream);
       serialize_packet(buff, pkt);
 

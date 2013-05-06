@@ -21,8 +21,8 @@ const int MAX_WINDOW = 128;
 
 int main(int argc, char *argv[]){
 
-  if(argc != 4){
-    printf("usage: port sender_hostname ack_port\n");
+  if(argc != 5){
+    printf("usage: port sender_hostname ack_port filename\n");
     exit(0);
   }
 
@@ -77,6 +77,15 @@ int main(int argc, char *argv[]){
   int src_len = sizeof src_addr;
   ee122_packet pkt;
 
+  int write_count;
+  char fbuff[sizeof(pkt.payload)];
+  memset(fbuff,0,sizeof(fbuff));
+  FILE *fd = fopen(argv[4], "wb");
+  if(NULL == fd) {
+    fprintf(stderr, "fopen() error\n");
+    return 1;
+  }
+
   int num_rcv = 0;
   int bytes_read = 0;
   unsigned long attempted = 0;
@@ -127,6 +136,11 @@ int main(int argc, char *argv[]){
       sleep_spec.tv_nsec = delay * 1000000;
       nanosleep(&sleep_spec, &sleep_spec);
       if(pkt.seq_number == seq_expected){
+        write_count = fwrite(pkt.payload, sizeof(char), sizeof(pkt.payload), fd);
+        if (ferror(fd)) {
+          fprintf(stderr, "error: %s\n", strerror(errno));
+          exit(3);
+        }
         seq_expected = (seq_expected + 1) % (MAX_WINDOW + 1);
 
         // Do the calcs
