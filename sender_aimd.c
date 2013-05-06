@@ -49,6 +49,15 @@ int main(int argc, char *argv[]){
   pkt.avg_len = 0;
   pkt.window_size = window_size;
 
+  int read_count;
+  char fbuff[sizeof(pkt.payload)];
+  memset(fbuff,0,sizeof(fbuff));
+  FILE *fd = fopen(argv[6], "rb");
+  if(NULL == fd) {
+    fprintf(stderr, "fopen() error\n");
+    return 1;
+  }
+
   ee122_packet rcv_pkt;
 
   struct timespec sleep_spec;
@@ -193,6 +202,13 @@ int main(int argc, char *argv[]){
       pkt.timestamp = curr_time;
       pkt.total_attempts = total_attempts;
       pkt.timeout = rtt;
+      read_count = fread(pkt.payload, sizeof(char), sizeof(pkt.payload), fd);
+      
+      if (feof(fd)) break;
+      if(ferror(fd)){
+         fprintf(stderr, "error: %s\n", strerror(errno));
+         exit(3);
+       }
       
       serialize_packet(buff, pkt);
 

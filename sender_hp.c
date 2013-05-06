@@ -69,7 +69,7 @@ int main(int argc, char *argv[]){
   int read_count;
   char fbuff[sizeof(pkt.payload)];
   memset(fbuff,0,sizeof(fbuff));
-  FILE *fd = fopen(argv[6], "r");
+  FILE *fd = fopen(argv[5], "r");
   if(NULL == fd) {
     fprintf(stderr, "fopen() error\n");
     return 1;

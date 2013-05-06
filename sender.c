@@ -51,7 +51,7 @@ int main(int argc, char *argv[]){
   int read_count;
   char fbuff[sizeof(pkt.payload)];
   memset(fbuff,0,sizeof(fbuff));
-  FILE *fd = fopen(argv[6], "r");
+  FILE *fd = fopen(argv[6], "rb");
   if(NULL == fd) {
     fprintf(stderr, "fopen() error\n");
     return 1;
@@ -187,11 +187,6 @@ int main(int argc, char *argv[]){
       pkt.timeout = rtt;
       read_count = fread(pkt.payload, sizeof(char), sizeof(pkt.payload), fd);
       
-      if (feof(fd)) break;
-      if(ferror(fd)){
-         fprintf(stderr, "error: %s\n", strerror(errno));
-         exit(3);
-       }
       //printf("Sending. Seq_no == %d, stream == %c\n", pkt.seq_number, pkt.stream);
       serialize_packet(buff, pkt);
 
@@ -201,6 +196,12 @@ int main(int argc, char *argv[]){
       sendto(send_sock, buff, sizeof(pkt), 0, p->ai_addr, p->ai_addrlen);
       pkt = deserialize_packet(buff);
       available_window -= 1;
+
+      if (feof(fd)) break;
+      if(ferror(fd)){
+         fprintf(stderr, "error: %s\n", strerror(errno));
+         exit(3);
+       }
 
       // Set this timeout
       gettimeofday(&timeouts[pkt.seq_number], NULL);
